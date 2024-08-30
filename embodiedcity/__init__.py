@@ -4,7 +4,7 @@ A Simple Python SDK to interact with the Embodied City API.
 ## Installation
 
 ```bash
-pip install embodiedcity
+pip install embodied-city-python-sdk
 ```
 
 ## Usage
@@ -60,6 +60,7 @@ After you finish using the drone, you should release it to make it available for
 You can do this by clicking on the "Release" button in the "Console" page.
 
 """
+
 from .client import DroneClient, ImageType, CameraID
 
 __all__ = ["DroneClient", "ImageType", "CameraID"]
