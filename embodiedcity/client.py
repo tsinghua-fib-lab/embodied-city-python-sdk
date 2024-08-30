@@ -3,6 +3,16 @@ try:
 except ImportError:
     print("Please install the requests package using `pip install requests`")
     exit(1)
+try:
+    import numpy as np
+except ImportError:
+    print("Please install the numpy package using `pip install numpy`")
+    exit(1)
+try:
+    import cv2
+except ImportError:
+    print("Please install the opencv-python package using `pip install opencv-python`")
+    exit(1)
 
 __all__ = ["ImageType", "CameraID", "DroneClient"]
 
@@ -14,15 +24,15 @@ class ImageType:
     Segmentation = 2
 
 class CameraID:
-    front_center = 0
+    FrontCenter = 0
     """front_center"""
-    front_right = 1
+    FrontRight = 1
     """front_right"""
-    front_left = 2
+    FrontLeft = 2
     """front_left"""
-    bottom_center = 3
+    BottomCenter = 3
     """bottom_center"""
-    back_center = 4
+    BackCenter = 4
     """back_center"""
 
 class DroneClient:
@@ -47,8 +57,16 @@ class DroneClient:
         })
         if res.status_code != 200:
             raise Exception(f"Failed to make request: {res.text}")
-        # TODO: 图像要单独处理
-        return res.json()
+        if res.headers["Content-Type"] == "application/json":
+            return res.json()
+        if res.headers["Content-Type"] == "image/jpeg":
+            data = res.content
+            # 以彩色模式读取图像二进制数据
+            img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+            # OpenCV读取的图像是BGR格式，如果是用于显示或处理RGB图像，则需要转换颜色通道
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            return img_rgb
+        raise Exception(f"Unexpected response: {res.headers['Content-Type']}")
     
     def move_back_forth(self, distance: float):
         """

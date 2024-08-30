@@ -1,35 +1,27 @@
-[build-system]
-requires = ["setuptools>=41", "wheel", "setuptools-git-versioning<2"]
-build-backend = "setuptools.build_meta"
-
-# https://setuptools-git-versioning.readthedocs.io/en/stable/install.html
-[tool.setuptools-git-versioning]
-enabled = true
-
-[project]
-name = "embodiedcity"
-authors = [{ name = "Jun Zhang", email = "zhangjun990222@gmail.com" }]
+[tool.poetry]
+name = "embodied-city-python-sdk"
+version = "0.1.0"
 description = "Embodied City Python SDK"
-keywords = ["city", "embodied", "sdk"]
+authors = ["Jun Zhang <zhangjun990222@qq.com>"]
+license = "MIT"
 readme = "README.md"
-license = { file = "LICENSE" }
-dynamic = ["version"]
-requires-python = ">=3.8"
-dependencies = [
-    'importlib-metadata; python_version<"3.8"',
-    "requests >= 2.27.0",
-]
+homepage = "https://embodied-city.fiblab.net"
+documentation = "https://embodied-city.fiblab.net/docs"
+keywords = ["city", "embodied", "sdk"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
+packages = [
+    { include = "embodiedcity", from = "." },
+]
 
-[project.urls]
-Homepage = "https://embodied-city.fiblab.net"
-Documentation = "https://pycitysim.sim.fiblab.net/pycitysim"
-Repository = "https://github.com/tsinghua-fib-lab/embodied-city-python-sdk.git"
-Issues = "https://github.com/tsinghua-fib-lab/embodied-city-python-sdk/issues"
+[tool.poetry.dependencies]
+python = "^3.10"
+requests = "^2"
+numpy = "^1"
+opencv-python = "^4"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["embodiedcity*"]
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

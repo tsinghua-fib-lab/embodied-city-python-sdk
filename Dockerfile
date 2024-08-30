@@ -5,7 +5,6 @@ COPY . /build
 ENV PIP_NO_CACHE_DIR=1
 RUN pip3 install --upgrade pip \ 
     && pip3 install pdoc \
-    && ./scripts/install-local.sh \
     && ./scripts/gen_docs.sh
 
 FROM node:20-alpine
@@ -16,7 +15,8 @@ WORKDIR /home/node/app
 RUN yarn global add serve
 
 # Copy build files
-COPY --from=builder /build/docs ./build
+RUN mkdir -p /home/node/app/build/docs
+COPY --from=builder /build/docs ./build/docs
 
 EXPOSE 80
 
