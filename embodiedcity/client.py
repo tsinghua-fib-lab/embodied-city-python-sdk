@@ -57,6 +57,8 @@ class DroneClient:
         })
         if res.status_code != 200:
             raise Exception(f"Failed to make request: {res.text}")
+        if res.headers["Content-Type"] == "application/json; charset=utf-8":
+            return res.json()
         if res.headers["Content-Type"] == "application/json":
             return res.json()
         if res.headers["Content-Type"] == "image/jpeg":
@@ -127,7 +129,8 @@ class DroneClient:
         Returns:
         - numpy.array: The image
         """
-        return self._make_request("get_image", int(image_type), int(camera_id))
+        response = self._make_request("get_image", int(image_type), str(camera_id))
+        return np.array(response['data'])
     
     def get_current_state(self):
         """
@@ -138,7 +141,8 @@ class DroneClient:
         - [pitch, roll, yaw]: The orientation of the drone
         """
 
-        return self._make_request("get_current_state")
+        response = self._make_request("get_current_state")
+        return response['data'][0], response['data'][1]
     
     def move_to_position(self, x: float, y: float, z: float):
         """
