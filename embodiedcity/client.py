@@ -58,9 +58,11 @@ class DroneClient:
         })
         if res.status_code != 200:
             raise Exception(f"Failed to make request: {res.text}")
-        if res.headers["Content-Type"].split(';')[0] == "application/json":
+
+        content_type = res.headers["Content-Type"].split(';')[0]
+        if content_type == "application/json":
             return res.json()['data']
-        if res.headers["Content-Type"].split(';')[0] == "image/jpeg":
+        if content_type == "image/jpeg":
             data = res.content
             # 以彩色模式读取图像二进制数据
             img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
