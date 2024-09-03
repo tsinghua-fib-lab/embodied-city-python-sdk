@@ -1,11 +1,10 @@
 from embodiedcity.client import DroneClient, ImageType, CameraID
 import numpy as np
 
+# Initializing the drone
 base_url = "https://embodied-city.fiblab.net"
 drone_id = "x" # The drone ID taken over, such as "0", "1"
 token = "xxxxxxxx"
-
-# Initializing the drone
 client = DroneClient(base_url, drone_id, token)
 
 # Get the current pose {[x, y, z], [pitch, roll, yaw]}
