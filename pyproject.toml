@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "embodied-city-python-sdk"
-version = "0.1.0"
+version = "0.1.1"
 description = "Embodied City Python SDK"
-authors = ["Jun Zhang <zhangjun990222@qq.com>"]
+authors = ["Jun Zhang <zhangjun990222@qq.com>", "Baining Zhao <bainingzhao66@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://embodied-city.fiblab.net"
