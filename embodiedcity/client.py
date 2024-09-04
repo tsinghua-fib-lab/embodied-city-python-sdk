@@ -14,6 +14,7 @@ except ImportError:
     print("Please install the opencv-python package using `pip install opencv-python`")
     exit(1)
 
+
 __all__ = ["ImageType", "CameraID", "DroneClient"]
 
 class ImageType:
@@ -57,15 +58,17 @@ class DroneClient:
         })
         if res.status_code != 200:
             raise Exception(f"Failed to make request: {res.text}")
-        if res.headers["Content-Type"] == "application/json":
-            return res.json()
-        if res.headers["Content-Type"] == "image/jpeg":
+
+        content_type = res.headers["Content-Type"].split(';')[0]
+        if content_type == "application/json":
+            return res.json()['data']
+        if content_type == "image/jpeg":
             data = res.content
             # 以彩色模式读取图像二进制数据
             img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
             # OpenCV读取的图像是BGR格式，如果是用于显示或处理RGB图像，则需要转换颜色通道
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            return img_rgb
+            # img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            return img
         raise Exception(f"Unexpected response: {res.headers['Content-Type']}")
     
     def move_back_forth(self, distance: float):
@@ -127,7 +130,8 @@ class DroneClient:
         Returns:
         - numpy.array: The image
         """
-        return self._make_request("get_image", int(image_type), int(camera_id))
+
+        return self._make_request("get_image", int(image_type), str(camera_id))
     
     def get_current_state(self):
         """
@@ -138,7 +142,8 @@ class DroneClient:
         - [pitch, roll, yaw]: The orientation of the drone
         """
 
-        return self._make_request("get_current_state")
+        response = self._make_request("get_current_state")
+        return response[0], response[1]
     
     def move_to_position(self, x: float, y: float, z: float):
         """
