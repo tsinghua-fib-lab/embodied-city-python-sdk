@@ -3,7 +3,7 @@ import numpy as np
 
 # Initializing the drone
 base_url = "https://embodied-city.fiblab.net"
-drone_id = "x" # The drone ID taken over, such as "0", "1"
+drone_id = "x"  # The drone ID taken over, such as "0", "1"
 token = "xxxxxxxx"
 client = DroneClient(base_url, drone_id, token)
 
@@ -26,8 +26,14 @@ client.move_back_forth(10)
 client.move_by_yaw(np.pi / 2)
 
 # Obtain the RGB image of the front camera
-img = client.get_image(0, 0)
+img = client.get_image(ImageType.Scene, CameraID.FrontCenter)
 
 # Drone forced to move to designated location
-client.set_vehicle_pose(6.50150258e+03, -4.19969414e+03, -1.31595741e+00,  0.00000000e+00,
-        0.00000000e+00,  1.80000000e+02)
+client.set_vehicle_pose(
+    6.50150258e03,
+    -4.19969414e03,
+    -1.31595741e00,
+    0.00000000e00,
+    0.00000000e00,
+    1.80000000e02,
+)

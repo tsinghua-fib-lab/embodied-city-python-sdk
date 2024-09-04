@@ -1,13 +1,13 @@
 [tool.poetry]
-name = "embodied-city-python-sdk"
-version = "0.1.1"
+name = "embodiedcity"
+version = "0.1.3"
 description = "Embodied City Python SDK"
 authors = ["Jun Zhang <zhangjun990222@qq.com>", "Baining Zhao <bainingzhao66@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://embodied-city.fiblab.net"
 documentation = "https://embodied-city.fiblab.net/docs"
-keywords = ["city", "embodied", "sdk"]
+keywords = ["city", "embodied"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
