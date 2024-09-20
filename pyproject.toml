@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "embodiedcity"
-version = "0.3.0"
+version = "0.2.0"
 description = "Embodied City Python SDK"
 authors = ["Jun Zhang <zhangjun990222@qq.com>", "Baining Zhao <bainingzhao66@gmail.com>"]
 license = "MIT"
