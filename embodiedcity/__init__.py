@@ -76,6 +76,6 @@ Please download and install the full embodiedcity simulator.
 
 """
 
-from .client import DroneClient, ImageType, CameraID
+from .client import DroneClient, ImageType, CameraID, POI
 
-__all__ = ["DroneClient", "ImageType", "CameraID"]
+__all__ = ["DroneClient", "ImageType", "CameraID", "POI"]

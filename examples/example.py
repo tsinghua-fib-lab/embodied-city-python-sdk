@@ -3,9 +3,12 @@ import numpy as np
 
 # Initializing the drone
 base_url = "https://embodied-city.fiblab.net"
-drone_id = "x"  # The drone ID taken over, such as "0", "1"
-token = "xxxxxxxx"
+drone_id = ""  # The drone ID taken over, such as "0", "1"
+token = ""
 client = DroneClient(base_url, drone_id, token)
+
+pois = client.query_pois(6825, -3795, 10, "")
+print(pois)
 
 # Get the current pose {[x, y, z], [pitch, roll, yaw]}
 pos = client.get_current_state()
