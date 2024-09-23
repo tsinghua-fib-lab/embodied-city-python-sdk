@@ -1,13 +1,12 @@
 from typing import Any, Dict, List, NamedTuple, Optional, Tuple, cast
 
-import requests
-import numpy as np
+import aiohttp
 import cv2
+import numpy as np
+import requests
 from pyproj import Proj
 from shapely.geometry import Point
 from shapely.strtree import STRtree
-from scipy.linalg import lstsq
-
 
 __all__ = ["ImageType", "CameraID", "POI", "DroneClient"]
 
@@ -47,18 +46,22 @@ class AffineTransformer:
         local_points = [
             (5598.70000000, -3432.20000000),
             (5586.00000000, -5588.80000000),
-            (7429.30000000, -5542.70000000)
+            (7429.30000000, -5542.70000000),
         ]
         latlon_points = [
             (39.90838719666494, 116.46173862693877),
             (39.93371933689764, 116.46173732726206),
-            (39.933684214234376, 116.48987439205544)
+            (39.933684214234376, 116.48987439205544),
         ]
 
         self.local_points = np.array(local_points)
         self.latlon_points = np.array(latlon_points)
-        self.local_to_latlon_transform = self.compute_affine_transform(self.local_points, self.latlon_points)
-        self.latlon_to_local_transform = self.compute_affine_transform(self.latlon_points, self.local_points)
+        self.local_to_latlon_transform = self.compute_affine_transform(
+            self.local_points, self.latlon_points
+        )
+        self.latlon_to_local_transform = self.compute_affine_transform(
+            self.latlon_points, self.local_points
+        )
 
     def compute_affine_transform(self, src_points, dst_points):
         """
@@ -76,7 +79,7 @@ class AffineTransformer:
         B = np.array(B)
 
         # Solve the least squares problem to find the affine transform
-        X, _, _, _ = lstsq(A, B)
+        X = np.linalg.lstsq(A, B, rcond=None)[0]
 
         return X.reshape(2, 3)
 
@@ -92,14 +95,18 @@ class AffineTransformer:
         """
         Converts local coordinates to latitude and longitude.
         """
-        lat, lon = self.apply_affine_transform(np.array([[x, y]]), self.local_to_latlon_transform)[0]
+        lat, lon = self.apply_affine_transform(
+            np.array([[x, y]]), self.local_to_latlon_transform
+        )[0]
         return lat, lon
 
     def latlon_to_local(self, lat, lon):
         """
         Converts latitude and longitude to local coordinates.
         """
-        x, y = self.apply_affine_transform(np.array([[lat, lon]]), self.latlon_to_local_transform)[0]
+        x, y = self.apply_affine_transform(
+            np.array([[lat, lon]]), self.latlon_to_local_transform
+        )[0]
         return x, y
 
 
@@ -143,27 +150,49 @@ class DroneClient:
             return img
         raise Exception(f"Unexpected response: {res.headers['Content-Type']}")
 
+    async def _amake_request(self, action: str, *args):
+        url = f"{self._base_url}/api/call-function"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                json={
+                    "droneId": self._drone_id,
+                    "action": action,
+                    "args": args,
+                    "token": self._token,
+                },
+            ) as res:
+                if res.status != 200:
+                    raise Exception(f"Failed to make request: {await res.text()}")
+
+                content_type = res.headers["Content-Type"].split(";")[0]
+                if content_type == "application/json":
+                    return (await res.json())["data"]
+                if content_type == "image/jpeg":
+                    data = await res.read()
+                    return cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+                raise Exception(f"Unexpected response: {res.headers['Content-Type']}")
+
     def _prepare_pois(self):
         data = cast(Dict[str, Any], self._make_request("get_pois"))
         projector = Proj(data["projection"])
-        pois = [POI(
-            id=p["id"],
-            x=p["position"]["x"],
-            y=p["position"]["y"],
-            name=p["name"],
-            category=p["category"]
-        ) for p in data["pois"]]
+        pois = [
+            POI(
+                id=p["id"],
+                x=p["position"]["x"],
+                y=p["position"]["y"],
+                name=p["name"],
+                category=p["category"],
+            )
+            for p in data["pois"]
+        ]
         converted_pois = []
         for p in pois:
             lng, lat = projector(p.x, p.y, inverse=True)
             ue_x, ue_y = self._transformer.latlon_to_local(lat, lng)
-            converted_pois.append(POI(
-                id=p.id,
-                x=ue_x,
-                y=ue_y,
-                name=p.name,
-                category=p.category
-            ))
+            converted_pois.append(
+                POI(id=p.id, x=ue_x, y=ue_y, name=p.name, category=p.category)
+            )
         return converted_pois, STRtree([Point(p.x, p.y) for p in converted_pois])
 
     def move_back_forth(self, distance: float):
@@ -178,6 +207,18 @@ class DroneClient:
         """
         return self._make_request("move_back_forth", distance)
 
+    async def amove_back_forth(self, distance: float):
+        """
+        Move the drone back and forth by a certain distance
+
+        Args:
+        - distance: The distance to move the drone by (unit: meters). distance > 0 means moving forward, distance < 0 means moving backward.
+
+        Returns:
+        - None
+        """
+        return await self._amake_request("move_back_forth", distance)
+
     def move_horizontal(self, distance: float):
         """
         Move the drone left and right by a certain distance
@@ -189,6 +230,18 @@ class DroneClient:
         - None
         """
         return self._make_request("move_horizontal", distance)
+
+    async def amove_horizontal(self, distance: float):
+        """
+        Move the drone left and right by a certain distance
+
+        Args:
+        - distance: The distance to move the drone by (unit: meters). distance > 0 means moving left, distance < 0 means moving right.
+
+        Returns:
+        - None
+        """
+        return await self._amake_request("move_horizontal", distance)
 
     def move_vertical(self, distance: float):
         """
@@ -202,6 +255,18 @@ class DroneClient:
         """
         return self._make_request("move_vertical", distance)
 
+    async def amove_vertical(self, distance: float):
+        """
+        Move the drone up and down by a certain distance
+
+        Args:
+        - distance: The distance to move the drone by (unit: meters). distance > 0 means moving up, distance < 0 means moving down.
+
+        Returns:
+        - None
+        """
+        return await self._amake_request("move_vertical", distance)
+
     def move_by_yaw(self, yaw: float):
         """
         Rotate the drone by a certain angle
@@ -214,7 +279,19 @@ class DroneClient:
         """
         return self._make_request("move_by_yaw", yaw)
 
-    def get_image(self, image_type: ImageType, camera_id: CameraID):
+    async def amove_by_yaw(self, yaw: float):
+        """
+        Rotate the drone by a certain angle
+
+        Args:
+        - yaw: The angle to rotate the drone by (unit: radians). Positive values mean rotating counterclockwise, negative values mean rotating clockwise.
+
+        Returns:
+        - None
+        """
+        return await self._amake_request("move_by_yaw", yaw)
+
+    def get_image(self, image_type: int, camera_id: int):
         """
         Get an image from the drone
 
@@ -228,6 +305,20 @@ class DroneClient:
 
         return self._make_request("get_image", int(image_type), str(camera_id))
 
+    async def aget_image(self, image_type: int, camera_id: int):
+        """
+        Get an image from the drone
+
+        Args:
+        - image_type: The type of image to get
+        - camera_id: The ID of the camera to get the image from
+
+        Returns:
+        - numpy.array: The image
+        """
+
+        return await self._amake_request("get_image", int(image_type), str(camera_id))
+
     def get_current_state(self):
         """
         Get the current state of the drone
@@ -238,6 +329,18 @@ class DroneClient:
         """
 
         response = self._make_request("get_current_state")
+        return response[0], response[1]
+
+    async def aget_current_state(self):
+        """
+        Get the current state of the drone
+
+        Returns:
+        - [x, y, z]: The position of the drone
+        - [pitch, roll, yaw]: The orientation of the drone
+        """
+
+        response = await self._amake_request("get_current_state")
         return response[0], response[1]
 
     def move_to_position(self, x: float, y: float, z: float):
@@ -253,6 +356,20 @@ class DroneClient:
         - None
         """
         return self._make_request("move_to_position", x, y, z)
+
+    async def amove_to_position(self, x: float, y: float, z: float):
+        """
+        Move the drone to a certain position
+
+        Args:
+        - x: The x-coordinate of the target position
+        - y: The y-coordinate of the target position
+        - z: The z-coordinate of the target position
+
+        Returns:
+        - None
+        """
+        return await self._amake_request("move_to_position", x, y, z)
 
     def set_vehicle_pose(
         self, x: float, y: float, z: float, pitch: float, roll: float, yaw: float
@@ -273,6 +390,26 @@ class DroneClient:
         - None
         """
         return self._make_request("set_vehicle_pose", x, y, z, pitch, roll, yaw)
+
+    async def aset_vehicle_pose(
+        self, x: float, y: float, z: float, pitch: float, roll: float, yaw: float
+    ):
+        """
+        Set the pose of the drone.
+        Attention: This function will teleport the drone to the target position.
+
+        Args:
+        - x: The x-coordinate of the target position
+        - y: The y-coordinate of the target position
+        - z: The z-coordinate of the target position
+        - pitch: The pitch of the drone
+        - roll: The roll of the drone
+        - yaw: The yaw of the drone
+
+        Returns:
+        - None
+        """
+        return await self._amake_request("set_vehicle_pose", x, y, z, pitch, roll, yaw)
 
     def query_pois(
         self,
